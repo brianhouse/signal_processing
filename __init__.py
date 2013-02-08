@@ -13,6 +13,29 @@ def resample(ts, values, num_samples):
     ts = normalize(ts)
     return np.interp(np.linspace(0.0, 1.0, num_samples), ts, values)
 
+def upsample(signal, factor):
+    """Increase the sampling rate of a signal (by an integer factor), with linear interpolation"""
+    assert type(factor) == int and factor > 1
+    result = [None] * ((len(signal) - 1) * factor)
+    for i, v in enumerate(signal):
+        if i == len(signal) - 1:
+            result[-1] = v
+            break
+        v_ = signal[i+1]
+        delta = v_ - v
+        for j in range(factor):
+            f = (i * factor) + j
+            result[f] = v + ((delta / factor) * j)
+    return result     
+
+def downsample(signal, factor):
+    """Decrease the sampling rate of a signal (by an integer factor), with averaging"""    
+    signal = np.array(signal)
+    xs = signal.shape[0]
+    signal = signal[:xs - (xs % int(factor))]
+    result = np.mean(np.concatenate([[signal[i::factor] for i in range(factor)]]), axis=0)
+    return result     
+
 def threshold(signal, value):
     """Drop all values in a signal to 0 if below the given threshold"""
     signal = np.array(signal)
