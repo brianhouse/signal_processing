@@ -3,7 +3,8 @@ signal_processing
 
 A quick and dirty signal processing library for creative coding with 1D signals
 
-Requires Python 2.6+ and NumPy
+Requires Python 2.6+ (Python3 compatible) and NumPy
+
 
 
 ### Copyright/License
