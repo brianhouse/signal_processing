@@ -55,9 +55,9 @@ def replace_shots(signal, threshold):
     return signal
 
 def compress(signal, value=2.0, normalize=False):
-    """Compress the signal by an exponential value"""
+    """Compress the signal by an exponential value (will expand if value<0)"""
     signal = np.array(signal)
-    signal = np.pow(signal, 1.0 / value)
+    signal = np.power(signal, 1.0 / value)
     return normalize(signal) if normalize else signal
 
 def smooth(signal, size=10, window='blackman'):
