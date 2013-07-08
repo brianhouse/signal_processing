@@ -1,11 +1,17 @@
 import time, math
 import numpy as np
 
-def normalize(signal):
+def normalize(signal, minimum=None, maximum=None):
     """Normalize a signal to the range 0, 1"""
     signal = np.array(signal).astype('float')
-    signal -= np.min(signal)
-    signal /= np.max(signal)
+    if minimum is None:
+        signal -= np.min(signal)
+    else:
+        signal -= minimum
+    if maximum is None:
+        signal /= np.max(signal)
+    else:
+        signal /= maximum - minimum
     return signal
 
 def resample(ts, values, num_samples):
