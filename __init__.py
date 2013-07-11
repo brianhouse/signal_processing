@@ -12,6 +12,7 @@ def normalize(signal, minimum=None, maximum=None):
         signal /= np.max(signal)
     else:
         signal /= maximum - minimum
+    signal = np.clip(signal, 0.0, 1.0)
     return signal
 
 def resample(ts, values, num_samples):
