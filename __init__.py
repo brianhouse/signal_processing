@@ -1,19 +1,6 @@
 import time, math
 import numpy as np
 
-def normalize(signal, minimum=None, maximum=None):
-    """Normalize a signal to the range 0, 1"""
-    signal = np.array(signal).astype('float')
-    if minimum is None:
-        signal -= np.min(signal)
-    else:
-        signal -= minimum
-    if maximum is None:
-        signal /= np.max(signal)
-    else:
-        signal /= maximum - minimum
-    signal = np.clip(signal, 0.0, 1.0)
-    return signal
 
 def resample(ts, values, num_samples):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
@@ -43,6 +30,20 @@ def downsample(signal, factor):
     result = np.mean(np.concatenate([[signal[i::factor] for i in range(factor)]]), axis=0)
     return result     
 
+def normalize(signal, minimum=None, maximum=None):
+    """Normalize a signal to the range 0, 1"""
+    signal = np.array(signal).astype('float')
+    if minimum is None:
+        signal -= np.min(signal)
+    else:
+        signal -= minimum
+    if maximum is None:
+        signal /= np.max(signal)
+    else:
+        signal /= maximum - minimum
+    signal = np.clip(signal, 0.0, 1.0)
+    return signal    
+
 def threshold(signal, value):
     """Drop all values in a signal to 0 if below the given threshold"""
     signal = np.array(signal)
@@ -52,13 +53,27 @@ def limit(signal, value):
     """Limit all values in a signal to the given value"""
     return np.clip(signal, 0, value)
 
-def replace_shots(signal, threshold):
-    """Replace values in a signal over a given threshold with the average of the remaining samples"""
-    shot_indexes = [i for (i, sample) in enumerate(signal) if sample > threshold]
-    good_samples = [sample for (i, sample) in enumerate(signal) if sample <= threshold]
-    average = np.average(good_samples)
+def remove_shots(signal, threshold=None, devs=2, positive_only=False):
+    """Replace values in a signal that are above a threshold or vary by a given number of deviations with the average of the surrounding samples"""    
+    average = np.average(signal)
+    if threshold is not None:
+        shot_indexes = [i for (i, sample) in enumerate(signal) if sample > threshold]
+    else:
+        deviation = np.std(signal)
+        shot_indexes = [i for (i, sample) in enumerate(signal) if (value - average if positive_only else abs(value - average)) > deviation * num_devs]
     for i in shot_indexes:
-        signal[i] = average
+        neighbors = []
+        j = i + 1
+        k = i - 1
+        while j in shot_indexes:
+            j += 1
+        if j < len(signal):
+            neighbors.append(signal[j])
+        while k in shot_indexes:
+            k -= 1
+        if k >= 0:
+            neighbors.append(signal[k])
+        signal[i] = sum(neighbors) / float(len(neighbors))
     return signal
 
 def compress(signal, value=2.0, normalize=False):
@@ -86,7 +101,7 @@ def smooth(signal, size=10, window='blackman'):
 
 def detect_peaks(signal, lookahead=300, delta=0):
     """ Detect the local maximas and minimas in a signal
-        lookahead -- distance to look ahead from a potential peak to see if a bigger one is coming
+        lookahead -- samples to look ahead from a potential peak to see if a bigger one is coming
         delta -- minimum difference between a peak and surrounding points to be considered a peak (no hills) and makes things faster
         Note: careful if you have flat regions, may affect lookahead
     """    
@@ -134,4 +149,46 @@ def autocorrelate(signal):
     ac = np.concatenate([ac, np.zeros(signal.size - ac.size)])
     return normalize(ac)
 
+def derivative(signal):
+    """Return a signal that is the derivative function of a given signal"""
+    def f(x):
+        x = int(x)
+        return signal[x]
+    def df(x, h=0.1e-5):
+        return (f(x + h * 0.5) - f(x - h * 0.5)) / h
+    return [df(x) for x in xrange(len(signal))]
 
+def integral(signal):
+    """Return a signal that is the integral function of a given signal"""
+    result = []
+    v = 0.0    
+    for i in xrange(len(signal)):
+        v += signal[i]
+        result.append(v)
+    return result
+
+def trendline(signal):
+    """Returns a  line (slope, intersect) that is the regression line given a series of values."""
+    signal = list(signal)
+    n = len(signal) - 1
+    sum_x = 0
+    sum_y = 0
+    sum_xx = 0
+    sum_xy = 0
+    for i in range(1, n + 1):
+        x = i
+        y = signal[i]
+        sum_x = sum_x + x
+        sum_y = sum_y + y
+        xx = math.pow(x, 2)
+        sum_xx = sum_xx + xx
+        xy = x*y
+        sum_xy = sum_xy + xy
+    try:    
+        a = (-sum_x * sum_xy + sum_xx * sum_y) / (n * sum_xx - sum_x * sum_x)
+        b = (-sum_x * sum_y + n * sum_xy) / (n * sum_xx - sum_x * sum_x)
+    except ZeroDivisionError:
+        a, b = 0, 0    
+    return (b, a) # (slope, intersect)
+
+    
