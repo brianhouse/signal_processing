@@ -34,13 +34,11 @@ def normalize(signal, minimum=None, maximum=None):
     """Normalize a signal to the range 0, 1"""
     signal = np.array(signal).astype('float')
     if minimum is None:
-        signal -= np.min(signal)
-    else:
-        signal -= minimum
+        minimum = np.min(signal)
+    signal -= minimum
     if maximum is None:
-        signal /= np.max(signal)
-    else:
-        signal /= maximum - minimum
+        maximum = np.max(signal)
+    signal /= maximum
     signal = np.clip(signal, 0.0, 1.0)
     return signal    
 
@@ -60,7 +58,7 @@ def remove_shots(signal, threshold=None, devs=2, positive_only=False):
         shot_indexes = [i for (i, sample) in enumerate(signal) if sample > threshold]
     else:
         deviation = np.std(signal)
-        shot_indexes = [i for (i, sample) in enumerate(signal) if (value - average if positive_only else abs(value - average)) > deviation * num_devs]
+        shot_indexes = [i for (i, sample) in enumerate(signal) if (sample - average if positive_only else abs(sample - average)) > deviation * devs]
     for i in shot_indexes:
         neighbors = []
         j = i + 1
@@ -99,7 +97,7 @@ def smooth(signal, size=10, window='blackman'):
 ## todo: def hipass
 ## smooth and then subtract result    
 
-def detect_peaks(signal, lookahead=300, delta=0):
+def detect_peaks(signal, lookahead=300, delta=0):   ## probably a better scipy module...
     """ Detect the local maximas and minimas in a signal
         lookahead -- samples to look ahead from a potential peak to see if a bigger one is coming
         delta -- minimum difference between a peak and surrounding points to be considered a peak (no hills) and makes things faster
@@ -192,3 +190,29 @@ def trendline(signal):
     return (b, a) # (slope, intersect)
 
     
+def bandpass_filter(signal, sampling_rate, lowcut, highcut, order=6):
+    """In hz"""
+    from scipy.signal import butter, lfilter
+    nyquist = 0.5 * sampling_rate
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')
+    signal = lfilter(b, a, signal)
+    return signal
+    
+def lowpass_filter(signal, sampling_rate, cutoff, order=6):   
+    """smooth appears to be much faster in certain situations"""
+    from scipy.signal import butter, lfilter 
+    nyquist = 0.5 * sampling_rate
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    signal = lfilter(b, a, signal)
+    return signal
+
+def highpass_filter(signal, sampling_rate, cutoff, order=6):    
+    from scipy.signal import butter, lfilter
+    nyquist = 0.5 * sampling_rate
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='high', analog=False)
+    signal = lfilter(b, a, signal)
+    return signal    
