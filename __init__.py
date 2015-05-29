@@ -42,6 +42,10 @@ def normalize(signal, minimum=None, maximum=None):
     signal = np.clip(signal, 0.0, 1.0)
     return signal    
 
+def magnitude(signal):
+    signal = np.absolute(signal)
+    return signal
+
 def threshold(signal, value):
     """Drop all values in a signal to 0 if below the given threshold"""
     signal = np.array(signal)
