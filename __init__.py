@@ -43,7 +43,10 @@ def normalize(signal, minimum=None, maximum=None):
     return signal    
 
 def magnitude(signal):
+    """Absolute value of a signal"""
+    ## why am I seeing some negative values?
     signal = np.absolute(signal)
+    signal = threshold(signal, 0)
     return signal
 
 def threshold(signal, value):
@@ -158,7 +161,7 @@ def derivative(signal):
         return signal[x]
     def df(x, h=0.1e-5):
         return (f(x + h * 0.5) - f(x - h * 0.5)) / h
-    return [df(x) for x in xrange(len(signal))]
+    return [df(x) for x in range(len(signal))]
 
 def integral(signal):
     """Return a signal that is the integral function of a given signal"""
