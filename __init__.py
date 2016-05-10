@@ -2,8 +2,10 @@ import time, math
 import numpy as np
 
 
-def resample(ts, values, num_samples):
+def resample(ts, values, num_samples=None):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
+    if num_samples is None:
+        num_samples = len(ts)
     ts = normalize(ts)
     return np.interp(np.linspace(0.0, 1.0, num_samples), ts, values)
 
@@ -41,6 +43,18 @@ def normalize(signal, minimum=None, maximum=None):
     signal /= maximum
     signal = np.clip(signal, 0.0, 1.0)
     return signal    
+
+def rescale(signal, low, high):
+    """Rescale a signal (normalize it first) to a given range"""
+    signal *= high - low
+    signal += low
+    return signal
+
+def make_audio(signal):
+    signal = normalize(signal)
+    signal = rescale(signal, -32768, 32767)
+    signal = signal.astype(np.int16)
+    return signal
 
 def magnitude(signal):
     """Absolute value of a signal"""
@@ -88,7 +102,8 @@ def compress(signal, value=2.0, normalize=False):
     return normalize(signal) if normalize else signal
 
 def smooth(signal, size=10, window='blackman'):
-    """Apply averaging / low-pass filter to a signal with the given window shape and size"""
+    """Apply weighted moving average (aka low-pass filter) via convolution function to a signal with the given window shape and size"""
+    """This is going to be faster than highpass_filter"""
     types = ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']
     signal = np.array(signal)
     if size < 3:
@@ -97,11 +112,11 @@ def smooth(signal, size=10, window='blackman'):
     if window == 'flat': # running average
         w = np.ones(size,'d')
     else:
-        w = getattr(np, window)(size)
-    y = np.convolve(w / w.sum(), s, mode='same')
+        w = getattr(np, window)(size) # get a series of weights that matches the window and is the correct size 
+    y = np.convolve(w / w.sum(), s, mode='same') # convolve the signals
     return y[size - 1:-size + 1]
 
-## todo: def hipass
+## todo: detrend
 ## smooth and then subtract result    
 
 def detect_peaks(signal, lookahead=300, delta=0):   ## probably a better scipy module...
@@ -208,7 +223,7 @@ def bandpass_filter(signal, sampling_rate, lowcut, highcut, order=6):
     return signal
     
 def lowpass_filter(signal, sampling_rate, cutoff, order=6):   
-    """smooth appears to be much faster in certain situations"""
+    """fyi, convolution-based smooth is probably faster"""
     from scipy.signal import butter, lfilter 
     nyquist = 0.5 * sampling_rate
     normal_cutoff = cutoff / nyquist
