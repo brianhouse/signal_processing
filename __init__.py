@@ -2,10 +2,8 @@ import time, math
 import numpy as np
 
 
-def resample(ts, values, num_samples=None):
+def resample(ts, values, num_samples):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
-    if num_samples is None:
-        num_samples = len(ts)
     ts = normalize(ts)
     return np.interp(np.linspace(0.0, 1.0, num_samples), ts, values)
 
