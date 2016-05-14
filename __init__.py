@@ -161,8 +161,8 @@ def autocorrelate(signal):
     tmp = np.conj(sp, tmp)
     tmp = np.multiply(tmp, sp, tmp)
     ac = np.fft.irfft(tmp)
-    ac = np.divide(ac, signal.size, ac)[:signal.size/ 2] 
-    tmp = signal.size / (signal.size - np.arange(signal.size / 2, dtype=np.float64)) 
+    ac = np.divide(ac, signal.size, ac)[:math.floor(signal.size / 2)] 
+    tmp = signal.size / (signal.size - np.arange(math.floor(signal.size / 2), dtype=np.float64)) 
     ac = np.multiply(ac, tmp, ac)
     ac = np.concatenate([ac, np.zeros(signal.size - ac.size)])
     return normalize(ac)
