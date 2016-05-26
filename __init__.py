@@ -2,10 +2,15 @@ import time, math
 import numpy as np
 
 
-def resample(ts, values, num_samples):
+def resample(ts, values, num_samples=None):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
+    if num_samples == None:
+        num_samples = math.ceil((ts[-1] - ts[0]) / guess_period(ts))
     ts = normalize(ts)
     return np.interp(np.linspace(0.0, 1.0, num_samples), ts, values)
+
+def guess_period(ts):
+    return np.median([ts[i+1] - ts[i] for i in range(len(ts) - 1)])
 
 def upsample(signal, factor):
     """Increase the sampling rate of a signal (by an integer factor), with linear interpolation"""
@@ -164,7 +169,7 @@ def autocorrelate(signal):
     ac = np.divide(ac, signal.size, ac)[:math.floor(signal.size / 2)] 
     tmp = signal.size / (signal.size - np.arange(math.floor(signal.size / 2), dtype=np.float64)) 
     ac = np.multiply(ac, tmp, ac)
-    ac = np.concatenate([ac, np.zeros(signal.size - ac.size)])
+    ac = np.concatenate([ac, np.full(signal.size - ac.size, np.mean(ac))])  # note: technically the last half of the array should be zeros, but this works better for visualization and peak detection
     return normalize(ac)
 
 def derivative(signal):
