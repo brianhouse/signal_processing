@@ -122,6 +122,13 @@ def smooth(signal, size=10, window='blackman'):
 ## todo: detrend
 ## smooth and then subtract result    
 
+def detect_onsets(signal):
+    onsets = []
+    for i in range(len(signal) - 1):
+        if signal[i] == 0 and signal[i+1] > 0:
+            onsets.append(i)
+    return onsets
+
 def detect_peaks(signal, lookahead=300, delta=0):   ## probably a better scipy module...
     """ Detect the local maximas and minimas in a signal
         lookahead -- samples to look ahead from a potential peak to see if a bigger one is coming
