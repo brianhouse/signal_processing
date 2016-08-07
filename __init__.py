@@ -36,13 +36,14 @@ def downsample(signal, factor):
     return result     
 
 def normalize(signal, minimum=None, maximum=None):
-    """Normalize a signal to the range 0, 1"""
+    """Normalize a signal to the range 0, 1. Uses the minimum and maximum observed in the data unless explicitly passed."""
     signal = np.array(signal).astype('float')
     if minimum is None:
         minimum = np.min(signal)
-    signal -= minimum
     if maximum is None:
         maximum = np.max(signal)
+    signal -= minimum
+    maximum -= minimum
     signal /= maximum
     signal = np.clip(signal, 0.0, 1.0)
     return signal    
@@ -75,14 +76,20 @@ def limit(signal, value):
     """Limit all values in a signal to the given value"""
     return np.clip(signal, 0, value)
 
-def remove_shots(signal, threshold=None, devs=2, positive_only=False):
-    """Replace values in a signal that are above a threshold or vary by a given number of deviations with the average of the surrounding samples"""    
-    average = np.average(signal)
-    if threshold is not None:
-        shot_indexes = [i for (i, sample) in enumerate(signal) if sample > threshold]
-    else:
+def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, positive_only=False, nones=True):
+    """Replace values in a signal that are above a threshold or vary by a given number of deviations with the average of the surrounding samples"""        
+    shot_indexes = []
+    if threshold_high is not None:
+        shot_indexes += [i for (i, sample) in enumerate(signal) if sample > threshold_high]
+    if threshold_low is not None:
+        shot_indexes += [i for (i, sample) in enumerate(signal) if sample < threshold_low]
+    if devs is not None:
+        average = np.average(signal)
         deviation = np.std(signal)
-        shot_indexes = [i for (i, sample) in enumerate(signal) if (sample - average if positive_only else abs(sample - average)) > deviation * devs]
+        shot_indexes += [i for (i, sample) in enumerate(signal) if (sample - average if positive_only else abs(sample - average)) > deviation * devs]
+    if nones:
+        shot_indexes += [i for (i, sample) in enumerate(signal) if sample is None]
+    shot_indexes.sort()
     for i in shot_indexes:
         neighbors = []
         j = i + 1
