@@ -98,7 +98,7 @@ def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, pos
         i = 0
         while i < (len(signal) - 1):
             j = i + 1
-            while abs(signal[j] - signal[i]) > jump:
+            while j < len(signal) and abs(signal[j] - signal[i]) > jump:
                 shot_indexes.append(j)
                 j += 1
             i = j
