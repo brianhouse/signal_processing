@@ -79,8 +79,9 @@ def limit(signal, value):
     return np.clip(signal, 0, value)
 
 def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, positive_only=False, nones=False, zeros=False, jump=None):
-    """Replace values in a signal that are above a threshold or vary by a given number of deviations with the average of the surrounding samples"""        
-    signal = np.array(signal)
+    """Replace values in a signal that violate a threshold, vary by a given number of deviations, or exceed a jump by interpolation between neigboring 'good' samples"""
+    """Can be used to fill in missing values in a signal: mark them as None and run this function without other parameters"""        
+    signal = signal.copy()
     shot_indexes = []
     if threshold_high is not None:
         shot_indexes += [i for (i, sample) in enumerate(signal) if sample > threshold_high]
@@ -109,8 +110,6 @@ def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, pos
     while i < len(shot_indexes):    
         shot_index = shot_indexes[i]   
         start_index = shot_index - 1
-        if start_index < 0:
-            start_index = 0
         stop_index = shot_index + 1        
         j = 1
         while (i+j) < len(shot_indexes) and stop_index == shot_indexes[i+j]:    
@@ -119,9 +118,10 @@ def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, pos
         if stop_index == len(signal):
             stop_index = len(signal) - 1
         pos = (shot_index - start_index) / (stop_index - start_index)
-        signal[shot_index] = signal[start_index] + ((signal[stop_index] - signal[start_index]) * pos)
+        start_value = signal[start_index] if start_index > 0 else np.average([v for v in signal if v is not None])
+        signal[shot_index] = start_value + ((signal[stop_index] - start_value) * pos)
         i += 1
-    return signal[1:]
+    return signal
 
 def compress(signal, value=2.0, normalize=False):
     """Compress the signal by an exponential value (will expand if value<0)"""
