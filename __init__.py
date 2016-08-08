@@ -95,29 +95,33 @@ def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, pos
     if zeros:
         shot_indexes += [i for (i, sample) in enumerate(signal) if sample == 0]
     if jump is not None:
+        # note that noise at the beginning of the signal can really screw up jump
         i = 0
         while i < (len(signal) - 1):
             j = i + 1
             while j < len(signal) and abs(signal[j] - signal[i]) > jump:
                 shot_indexes.append(j)
                 j += 1
-            i = j
+            i = j    
+    shot_indexes = list(set(shot_indexes))
     shot_indexes.sort()
-    # print("percent shot_indexes", len(shot_indexes), len(shot_indexes) / len(signal))
-    for i in shot_indexes:
-        j = i + 1
-        k = i - 1
-        while j in shot_indexes:
-            j += 1
-        if j == len(signal):
-            j = len(signal) - 1
-        while k in shot_indexes:
-            k -= 1
-        if k < 0:
-            k = 0
-        pos = (i - k) / (j - k)
-        signal[i] = signal[k] + ((signal[j] - signal[k]) * pos)
-    return signal
+    i = 0
+    while i < len(shot_indexes):    
+        shot_index = shot_indexes[i]   
+        start_index = shot_index - 1
+        if start_index < 0:
+            start_index = 0
+        stop_index = shot_index + 1        
+        j = 1
+        while (i+j) < len(shot_indexes) and stop_index == shot_indexes[i+j]:    
+            stop_index += 1
+            j += 1            
+        if stop_index == len(signal):
+            stop_index = len(signal) - 1
+        pos = (shot_index - start_index) / (stop_index - start_index)
+        signal[shot_index] = signal[start_index] + ((signal[stop_index] - signal[start_index]) * pos)
+        i += 1
+    return signal[1:]
 
 def compress(signal, value=2.0, normalize=False):
     """Compress the signal by an exponential value (will expand if value<0)"""
