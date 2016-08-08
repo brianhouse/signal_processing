@@ -50,6 +50,7 @@ def normalize(signal, minimum=None, maximum=None):
 
 def rescale(signal, low, high):
     """Rescale a signal (normalize it first) to a given range"""
+    signal = np.array(signal)
     signal *= high - low
     signal += low
     return signal
@@ -63,6 +64,7 @@ def make_audio(signal):
 def magnitude(signal):
     """Absolute value of a signal"""
     ## why am I seeing some negative values?
+    signal = np.array(signal)
     signal = np.absolute(signal)
     signal = threshold(signal, 0)
     return signal
@@ -76,8 +78,9 @@ def limit(signal, value):
     """Limit all values in a signal to the given value"""
     return np.clip(signal, 0, value)
 
-def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, positive_only=False, nones=True):
+def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, positive_only=False, nones=False, zeros=False, jump=None):
     """Replace values in a signal that are above a threshold or vary by a given number of deviations with the average of the surrounding samples"""        
+    signal = np.array(signal)
     shot_indexes = []
     if threshold_high is not None:
         shot_indexes += [i for (i, sample) in enumerate(signal) if sample > threshold_high]
@@ -89,20 +92,31 @@ def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, pos
         shot_indexes += [i for (i, sample) in enumerate(signal) if (sample - average if positive_only else abs(sample - average)) > deviation * devs]
     if nones:
         shot_indexes += [i for (i, sample) in enumerate(signal) if sample is None]
+    if zeros:
+        shot_indexes += [i for (i, sample) in enumerate(signal) if sample == 0]
+    if jump is not None:
+        i = 0
+        while i < (len(signal) - 1):
+            j = i + 1
+            while abs(signal[j] - signal[i]) > jump:
+                shot_indexes.append(j)
+                j += 1
+            i = j
     shot_indexes.sort()
+    # print("percent shot_indexes", len(shot_indexes), len(shot_indexes) / len(signal))
     for i in shot_indexes:
-        neighbors = []
         j = i + 1
         k = i - 1
         while j in shot_indexes:
             j += 1
-        if j < len(signal):
-            neighbors.append(signal[j])
+        if j == len(signal):
+            j = len(signal) - 1
         while k in shot_indexes:
             k -= 1
-        if k >= 0:
-            neighbors.append(signal[k])
-        signal[i] = sum(neighbors) / float(len(neighbors))
+        if k < 0:
+            k = 0
+        pos = (i - k) / (j - k)
+        signal[i] = signal[k] + ((signal[j] - signal[k]) * pos)
     return signal
 
 def compress(signal, value=2.0, normalize=False):
