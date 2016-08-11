@@ -5,7 +5,7 @@ import numpy as np
 def resample(ts, values, num_samples=None):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
     if num_samples == None:
-        num_samples = math.ceil((ts[-1] - ts[0]) / guess_period(ts)) * 2
+        num_samples = math.ceil((ts[-1] - ts[0]) / guess_period(ts))
     ts = normalize(ts)
     return np.interp(np.linspace(0.0, 1.0, num_samples), ts, values)
 
@@ -211,16 +211,44 @@ def derivative(signal):
         return signal[x]
     def df(x, h=0.1e-5):
         return (f(x + h * 0.5) - f(x - h * 0.5)) / h
-    return [df(x) for x in range(len(signal))]
+    return np.array([df(x) for x in range(len(signal))])
 
 def integral(signal):
     """Return a signal that is the integral function of a given signal"""
     result = []
     v = 0.0    
-    for i in xrange(len(signal)):
+    for i in range(len(signal)):
         v += signal[i]
         result.append(v)
-    return result
+    return np.array(result)
+
+def delta(signal):
+    """Return a signal that is the change between each sample"""
+    signal = np.array(signal)
+    diff = np.diff(signal)
+    if len(signal.shape) > 1:
+        dims = signal.shape[1]
+        signal = np.concatenate((np.zeros((1, dims)), diff))
+    else:
+        signal = np.concatenate((np.zeros(1), diff))
+    return signal
+
+def flip(signal, num_samples=None):
+    """Flip the axes of a 1D signal"""
+    ts = signal
+    values = list(range(0, len(signal)))    
+    signal = resample(ts, values, num_samples)
+    return signal
+
+def f(signal, x):
+    """Return y value given a signal and a given x"""
+    if x <= 1:
+        indexf = x * (len(signal) - 1)
+    else:
+        indexf = x
+    pos = indexf % 1.0
+    value = (signal[math.floor(indexf)] * (1.0 - pos)) + (signal[math.ceil(indexf)] * pos)
+    return value
 
 def trendline(signal):
     """Returns a  line (slope, intersect) that is the regression line given a series of values."""
