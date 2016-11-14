@@ -4,6 +4,7 @@ import numpy as np
 
 def resample(ts, values, num_samples=None):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
+    assert np.all(np.diff(ts) > 0)
     if num_samples == None:
         num_samples = math.ceil((ts[-1] - ts[0]) / guess_period(ts))
     ts = normalize(ts)
@@ -119,7 +120,10 @@ def remove_shots(signal, threshold_high=None, threshold_low=None, devs=None, pos
             stop_index = len(signal) - 1
         pos = (shot_index - start_index) / (stop_index - start_index)
         start_value = signal[start_index] if start_index > 0 else np.average([v for v in signal if v is not None])
-        signal[shot_index] = start_value + ((signal[stop_index] - start_value) * pos)
+        if signal[stop_index] is not None:
+            signal[shot_index] = start_value + ((signal[stop_index] - start_value) * pos)
+        else:
+            signal[shot_index] = start_value
         i += 1
     return signal
 
@@ -251,7 +255,7 @@ def f(signal, x):
     return value
 
 def trendline(signal):
-    """Returns a  line (slope, intersect) that is the regression line given a series of values."""
+    """Returns a line (slope, intersect) that is the linear regression given a series of values."""
     signal = list(signal)
     n = len(signal) - 1
     sum_x = 0
