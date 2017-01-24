@@ -148,9 +148,6 @@ def smooth(signal, size=10, window='blackman'):
     y = np.convolve(w / w.sum(), s, mode='same') # convolve the signals
     return y[size - 1:-size + 1]
 
-## todo: detrend
-## smooth and then subtract result    
-
 def detect_onsets(signal):
     onsets = []
     for i in range(len(signal) - 1):
