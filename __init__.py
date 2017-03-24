@@ -4,7 +4,7 @@ import numpy as np
 
 def resample(ts, values, num_samples=None):
     """Convert a list of times and a list of values to evenly spaced samples with linear interpolation"""
-    assert np.all(np.diff(ts) > 0)
+    assert np.all(np.diff(ts) >= 0)
     if num_samples == None:
         num_samples = math.ceil((ts[-1] - ts[0]) / guess_period(ts))
     ts = normalize(ts)
